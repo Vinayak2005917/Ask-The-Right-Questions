@@ -20,7 +20,7 @@ The user has to enter the best guess they have of the overall story. If the gues
 ## Architecture 
 
 <p align="center">
-  <img src="diagram.png" alt="Description" width="350">
+  <img src="diagram.png" alt="Description" width="450">
 </p>
 
 the Full_st
