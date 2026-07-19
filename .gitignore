@@ -1,0 +1,22 @@
+# Python-generated files
+backend/__pycache__/
+backend/*.py[oc]
+backend/build/
+backend/dist/
+backend/wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+backend/.venv
+
+frontend/node_modules/
+
+__pycache__/
+
+.vite
+.vscode
+
+backend/.env
+
+backend/qdrant_db/.lock
