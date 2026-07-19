@@ -8,7 +8,7 @@ Ask The Right Questions
 A pixel-art detective game where players learn how RAG Agents works by questioning an AI with amnesia to solve a case of a missing person.
 
 <p align="center">
-  <img src="Full Map.png" alt="Description" width="350">
+  <img src="Full Map.png" alt="Description" width="420">
 </p>
 
 
