@@ -35,14 +35,10 @@ export class DarknessMask extends PIXI.Container {
   private sprite: PIXI.Sprite;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private _vw: number;
-  private _vh: number;
   private dpr: number;
 
   constructor(viewportW: number, viewportH: number) {
     super();
-    this._vw = viewportW;
-    this._vh = viewportH;
     this.dpr = window.devicePixelRatio || 1;
 
     this.canvas = document.createElement('canvas');
@@ -107,8 +103,6 @@ export class DarknessMask extends PIXI.Container {
 
   /** Call when the viewport is resized. */
   resize(vw: number, vh: number): void {
-    this._vw = vw;
-    this._vh = vh;
     this.dpr = window.devicePixelRatio || 1;
     this.canvas.width = vw * this.dpr;
     this.canvas.height = vh * this.dpr;

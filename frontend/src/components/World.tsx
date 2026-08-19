@@ -15,6 +15,7 @@ import { PointLight } from '../lights/PointLight';
 import { FloorLight } from '../lights/FloorLight';
 import { DustNoise } from '../lights/DustNoise';
 import { DustParticles } from './DustParticles';
+import { API_BASE_URL } from '../api';
 
 // ── Global pixel-art defaults (applied before any texture is created) ─────
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
@@ -109,14 +110,11 @@ export const World = forwardRef<WorldHandle, WorldProps>(
     const nodeByIdRef = useRef<Map<number, MemoryNode>>(new Map());
     const lightByIdRef = useRef<Map<number, PointLight>>(new Map());
     const fadingLightsRef = useRef<Map<PointLight, number>>(new Map());
-    const animQueueRef = useRef<number[]>([]);
     const animatingRef = useRef<Set<number>>(new Set());
     const [unlockedCount, setUnlockedCount] = useState(0);
     const totalNodeCountRef = useRef(0);
     const [gridVisible, setGridVisible] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1.5);
-    const [loading, setLoading] = useState(false);
-    const [memoryLog, setMemoryLog] = useState<MemoryPayload[]>([]);
     const [allWorldLog, setAllWorldLog] = useState<WorldNodeData[]>([]);
     const [tileScale, setTileScale] = useState(3);
     const [memoryScale, setMemoryScale] = useState(2.5);
@@ -374,7 +372,7 @@ export const World = forwardRef<WorldHandle, WorldProps>(
           }
           console.log(`[World #${mountId}] preload complete, fetching /send-all…`);
 
-          const res = await fetch('/send-all', { method: 'POST', signal: abortCtl.signal });
+          const res = await fetch(`${API_BASE_URL}/send-all`, { method: 'POST', signal: abortCtl.signal });
           const worldData: WorldNodeData[] = await res.json();
           if (!mountedRef.current || abortCtl.signal.aborted) {
             console.log(`[World #${mountId}] unmounted after fetch, aborting`);
@@ -448,10 +446,9 @@ export const World = forwardRef<WorldHandle, WorldProps>(
       // ── Ask Backend (unlocks returned memories) ───────
       const askBackend = async (q: string) => {
         if (!mountedRef.current) return;
-        setLoading(true);
         centralNode.pulse();
         try {
-          const res = await fetch(`/ask?query=${encodeURIComponent(q)}`, { method: 'POST', signal: abortCtl.signal });
+          const res = await fetch(`${API_BASE_URL}/ask?query=${encodeURIComponent(q)}`, { method: 'POST', signal: abortCtl.signal });
           const data: AskResponse = await res.json();
           if (!mountedRef.current) return;
 
@@ -466,7 +463,6 @@ export const World = forwardRef<WorldHandle, WorldProps>(
           const prevIds = new Set(prevMemories.map((m) => m.mem_id));
           const newMemories = data.memories.filter((m) => !prevIds.has(m.mem_id));
           allMemoriesRef.current = [...prevMemories, ...newMemories];
-          setMemoryLog((prev) => [...prev, ...newMemories]);
 
           // Show LLM response in a chat bubble above the central node
           chatBubbleRef.current?.destroy();
@@ -480,8 +476,6 @@ export const World = forwardRef<WorldHandle, WorldProps>(
           setTimeout(() => centralNode.flare(), 300);
         } catch (err) {
           console.error('Backend request failed:', err);
-        } finally {
-          setLoading(false);
         }
       };
 
@@ -806,7 +800,6 @@ export const World = forwardRef<WorldHandle, WorldProps>(
           <button style={btnStyle} onClick={zoomIn}>+</button>
         </div>
         <MemoryLogPanel
-          memories={memoryLog}
           allMemories={allWorldLog}
           unlockedCount={unlockedCount}
           totalCount={totalNodeCountRef.current}

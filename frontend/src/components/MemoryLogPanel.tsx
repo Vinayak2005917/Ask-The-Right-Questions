@@ -1,12 +1,5 @@
 import { useState } from 'react';
 
-interface MemoryLogEntry {
-  mem_id: number;
-  text: string;
-  x: number;
-  y: number;
-}
-
 interface WorldLogEntry {
   id: number;
   text: string;
@@ -16,7 +9,6 @@ interface WorldLogEntry {
 }
 
 interface MemoryLogPanelProps {
-  memories: MemoryLogEntry[];
   allMemories: WorldLogEntry[];
   unlockedCount: number;
   totalCount: number;
@@ -114,7 +106,6 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 export function MemoryLogPanel({
-  memories,
   allMemories,
   unlockedCount,
   totalCount,

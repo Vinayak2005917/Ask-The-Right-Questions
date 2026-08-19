@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import noteBg from '../assets/Notes_panel.png';
 import checkBtnBg from '../assets/Notes.png';
+import { API_BASE_URL } from '../api';
 
 const STORAGE_KEY = 'atrq_notes_v2';
 
@@ -337,7 +338,7 @@ export function NotesPanel() {
 
     try {
       const res = await fetch(
-        '/check-story',
+        `${API_BASE_URL}/check-story`,
         {
           method: 'POST',
 
