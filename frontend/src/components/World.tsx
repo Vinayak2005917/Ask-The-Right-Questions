@@ -52,6 +52,9 @@ interface WorldProps {
   height?: number;
 }
 
+// Memory nodes that are activated (unlocked) by default on world load
+const DEFAULT_ACTIVE_NODE_IDS = [1, 2, 3];
+
 /**
  * Scene graph:
  *   Stage
@@ -119,7 +122,6 @@ export const World = forwardRef<WorldHandle, WorldProps>(
     const [memoryScale, setMemoryScale] = useState(2.5);
     const [darkFreq, setDarkFreq] = useState(12); // 0–50%
     const [nodeScale, setNodeScale] = useState(3);
-    const [notesOpen, setNotesOpen] = useState(true);
     const [centralScale, setCentralScale] = useState(0.15);
 
     useEffect(() => {
@@ -170,9 +172,9 @@ export const World = forwardRef<WorldHandle, WorldProps>(
       const camera = new CameraController(worldLayer, {
         viewWidth: initW,
         viewHeight: initH,
-        minZoom: 0.5,
-        maxZoom: 5,
-        panBounds: { left: -10000, top: -10000, right: 10000, bottom: 10000 },
+        minZoom: 0.9,
+        maxZoom: 3,
+        panBounds: { left: -1, top: -10, right: 1, bottom: 10 },
       });
       cameraRef.current = camera;
 
@@ -425,6 +427,9 @@ export const World = forwardRef<WorldHandle, WorldProps>(
 
           // Draw connection lines for all nodes (all locked initially)
           rebuildConnectionsRef.current();
+
+          // Activate the starting nodes by default
+          unlockNodes(DEFAULT_ACTIVE_NODE_IDS);
 
           camera.goTo(150, 100, 1.5);
           camera.snap();
@@ -817,21 +822,8 @@ export const World = forwardRef<WorldHandle, WorldProps>(
           nodeScale={nodeScale}
           onNodeScaleChange={setNodeScale}
         />
-        <NotesPanel open={notesOpen} onClose={() => setNotesOpen(false)} />
+        <NotesPanel />
       </div>
-      {/* Notes toggle button at bottom-right */}
-      <button
-        style={{
-          position: 'fixed', bottom: 16, right: 16, zIndex: 200,
-          background: '#2a2a3a', border: '1px solid #444466',
-          borderRadius: 6, color: '#8888cc', fontSize: 12, fontFamily: 'monospace',
-          cursor: 'pointer', padding: '8px 14px', letterSpacing: 1.5,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-        }}
-        onClick={() => setNotesOpen(v => !v)}
-      >
-        {notesOpen ? '✕ NOTES' : '📓 NOTES'}
-      </button>
     </>);
   },
 );

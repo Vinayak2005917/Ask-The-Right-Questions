@@ -1,226 +1,523 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import noteBg from '../assets/Notes_panel.png';
+import checkBtnBg from '../assets/Notes.png';
 
 const STORAGE_KEY = 'atrq_notes_v2';
 
-interface Note {
-  id: string;
-  title: string;
-  body: string;
-  timestamp: number;
-}
+const MAX_LINES = 25;
+const MAX_CHARS = 36;
 
 interface CheckResult {
   status: 'win' | 'lose' | null;
   score: number;
 }
 
-function loadNotes(): Note[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-  catch { return []; }
+function loadNote(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
 }
 
-function saveNotes(notes: Note[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-}
-
-function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-
-interface NotesPanelProps {
-  open: boolean;
-  onClose: () => void;
+function saveNote(note: string) {
+  try {
+    localStorage.setItem(STORAGE_KEY, note);
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 const s: Record<string, React.CSSProperties> = {
   panel: {
-    position: 'absolute', top: 0, right: 0, height: '100%', width: 300,
-    background: '#1a1a1e', borderLeft: '1px solid #333', zIndex: 100,
-    display: 'flex', flexDirection: 'column', fontFamily: 'monospace',
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    height: '100%',
+    width: 420,
+
+    backgroundImage: `url(${noteBg})`,
+    backgroundSize: '100% 100%',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+
+    zIndex: 100,
+
+    display: 'flex',
+    flexDirection: 'column',
+    fontFamily: 'monospace',
+
     boxShadow: '-4px 0 20px rgba(0,0,0,0.6)',
   },
-  header: {
-    padding: '10px 14px', borderBottom: '1px solid #2a2a2a',
-    color: '#8888cc', fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+
+  notesArea: {
+    flex: 1,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  titleInput: {
-    width: '100%', padding: '10px 14px', border: 'none', borderBottom: '1px solid #2a2a2a',
-    background: '#141418', color: '#ccc', fontSize: 13, fontFamily: 'monospace',
+
+  input: {
+    position: 'absolute',
+
+    left: 55,
+    width: 330,
+
+    background: 'transparent',
+    border: 'none',
     outline: 'none',
+
+    color: '#556967',
+    fontSize: 16,
+    fontFamily: 'monospace',
+
+    boxSizing: 'border-box',
+    padding: 0,
   },
-  textarea: {
-    width: '100%', flex: 1, background: '#121216', border: 'none',
-    padding: '14px', color: '#bbb', fontSize: 12, fontFamily: 'monospace',
-    resize: 'none', outline: 'none', lineHeight: 1.7,
+
+  progressWrapper: {
+    borderBottom: '1px solid #222',
+    padding: '8px 14px',
+    display: 'flex',
+    gap: 8,
+    marginBottom: '8px',
   },
+
+  progressBar: {
+    flex: 1,
+    height: 14,
+
+    background: '#111',
+    borderRadius: 3,
+    overflow: 'hidden',
+    border: '1px solid #222',
+
+    position: 'relative',
+  },
+
   bar: {
-    padding: '8px 10px', borderTop: '1px solid #2a2a2a',
-    display: 'flex', gap: 6, flexWrap: 'wrap' as const,
+    padding: '8px 10px',
+    borderTop: '1px solid #2a2a2a',
+
+    display: 'flex',
+    justifyContent: 'center',
   },
+
   btn: {
-    flex: 1, minWidth: 60,
-    background: '#2a2a2a', color: '#ccc', border: '1px solid #444',
-    borderRadius: 4, padding: '7px 0', fontSize: 10, fontFamily: 'monospace',
-    cursor: 'pointer', letterSpacing: 1,
+    width: 150,
+    height: 42,
+
+    background: '#062632',
+    color: '#d5e3df',
+
+    border: '1px solid #1a4a52',
+    borderRadius: 4,
+
+    padding: '0 14px',
+
+    fontSize: 12,
+    fontWeight: 700,
+    fontFamily: 'monospace',
+
+    cursor: 'pointer',
+    letterSpacing: 1.5,
+
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+
+    position: 'relative',
+    zIndex: 101,
+
+    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
   },
+
   btnDisabled: {
-    flex: 1, minWidth: 60,
-    background: '#1a1a1a', color: '#555', border: '1px solid #333',
-    borderRadius: 4, padding: '7px 0', fontSize: 10, fontFamily: 'monospace',
-    cursor: 'not-allowed', letterSpacing: 1,
-  },
-  list: {
-    maxHeight: 140, overflowY: 'auto' as const, borderBottom: '1px solid #222',
-    background: '#111114',
-  },
-  listItem: {
-    padding: '7px 14px', borderBottom: '1px solid #1e1e22', cursor: 'pointer',
-    fontSize: 11, color: '#888',
-    display: 'flex', justifyContent: 'space-between' as const, alignItems: 'center',
-  },
-  resultBox: {
-    padding: '6px 10px', borderRadius: 4, fontSize: 11, textAlign: 'center' as const, fontWeight: 600,
-  },
+    width: 150,
+    height: 42,
+
+    background: '#062632',
+    color: '#52615f',
+
+    border: '1px solid #12353b',
+    borderRadius: 4,
+
+    padding: '0 14px',
+
+    fontSize: 12,
+    fontWeight: 700,
+    fontFamily: 'monospace',
+
+    cursor: 'not-allowed',
+    letterSpacing: 1.5,
+
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+
+    position: 'relative',
+    zIndex: 101,
+
+    opacity: 0.55,
+  }
 };
 
-export function NotesPanel({ open, onClose }: NotesPanelProps) {
-  const [notes, setNotes] = useState<Note[]>(() => loadNotes());
-  const [currentId, setCurrentId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
+export function NotesPanel() {
+  // Exact vertical positions of every notebook line.
+  // You can manually tweak individual values if needed.
+  const LINE_POSITIONS = [
+    104,
+    127,
+    150,
+    173,
+    196,
+    219,
+    242,
+    264,
+    287,
+    310,
+    333,
+    356,
+    379,
+    402,
+    425,
+    448,
+    471,
+    494,
+    517,
+    540,
+    563,
+    586,
+    609,
+    632,
+    655,
+  ];
+
+  const [lines, setLines] = useState<string[]>(() => {
+    const saved = loadNote();
+
+    if (!saved) {
+      return Array(MAX_LINES).fill('');
+    }
+
+    const savedLines = saved
+      .split('\n')
+      .slice(0, MAX_LINES);
+
+    return [
+      ...savedLines,
+      ...Array(MAX_LINES - savedLines.length).fill(''),
+    ];
+  });
+
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<CheckResult | null>(null);
+
   const checkIdRef = useRef(1);
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  // Persist note list
-  useEffect(() => { saveNotes(notes); }, [notes]);
+  const saveTimer = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
-  // Debounced auto-save current note body/title
+  const inputRefs = useRef<
+    Array<HTMLInputElement | null>
+  >([]);
+
+  // Convert all notebook lines into one story string
+  const body = lines.join('\n');
+
+  const updateLine = (
+    index: number,
+    value: string
+  ) => {
+    setLines((previous) => {
+      const updated = [...previous];
+
+      updated[index] = value;
+
+      return updated;
+    });
+
+    setResult(null);
+  };
+
+  // Auto-save notebook
   useEffect(() => {
-    if (!currentId) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+
     saveTimer.current = setTimeout(() => {
-      setNotes(prev => prev.map(n => n.id === currentId ? { ...n, title, body } : n));
+      saveNote(body);
     }, 400);
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [title, body, currentId]);
 
-  const selectNote = useCallback((note: Note) => {
-    setCurrentId(note.id);
-    setTitle(note.title);
-    setBody(note.body);
-    setResult(null);
-  }, []);
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+    };
+  }, [body]);
 
-  const newNote = useCallback(() => {
-    const note: Note = { id: genId(), title: '', body: '', timestamp: Date.now() };
-    setNotes(prev => [note, ...prev]);
-    selectNote(note);
-  }, [selectNote]);
+  const focusLine = (index: number) => {
+    if (index < 0 || index >= MAX_LINES) return;
 
-  const deleteNote = useCallback(() => {
-    if (!currentId) return;
-    setNotes(prev => prev.filter(n => n.id !== currentId));
-    setCurrentId(null);
-    setTitle('');
-    setBody('');
-    setResult(null);
-  }, [currentId]);
+    const input = inputRefs.current[index];
+
+    if (!input) return;
+
+    input.focus();
+
+    setTimeout(() => {
+      input.setSelectionRange(
+        input.value.length,
+        input.value.length
+      );
+    }, 0);
+  };
+
+  const handleKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    // ENTER → next line
+    if (event.key === 'Enter') {
+      event.preventDefault();
+
+      focusLine(index + 1);
+      return;
+    }
+
+    // BACKSPACE on empty line → previous line
+    if (
+      event.key === 'Backspace' &&
+      lines[index] === '' &&
+      index > 0
+    ) {
+      event.preventDefault();
+
+      focusLine(index - 1);
+      return;
+    }
+
+    // UP ARROW → previous line
+    if (
+      event.key === 'ArrowUp' &&
+      index > 0
+    ) {
+      event.preventDefault();
+
+      focusLine(index - 1);
+      return;
+    }
+
+    // DOWN ARROW → next line
+    if (
+      event.key === 'ArrowDown' &&
+      index < MAX_LINES - 1
+    ) {
+      event.preventDefault();
+
+      focusLine(index + 1);
+    }
+  };
 
   const handleCheckStory = async () => {
-    if (!body.trim()) return;
+    const contents = lines
+      .filter((line) => line.trim())
+      .join('\n');
+
+    if (!contents.trim()) return;
+
     setChecking(true);
     setResult(null);
-    const progressCheckId = checkIdRef.current++;
+
+    const progressCheckId =
+      checkIdRef.current++;
+
     try {
-      const res = await fetch('/check-story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'progress_check',
-          progress_check_id: progressCheckId,
-          contents: body,
-        }),
-      });
+      const res = await fetch(
+        '/check-story',
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body: JSON.stringify({
+            type: 'progress_check',
+
+            progress_check_id:
+              progressCheckId,
+
+            contents,
+          }),
+        }
+      );
+
       const data = await res.json();
-      const score = data.progress_check_status ?? 0;
-      setResult({ status: score >= 70 ? 'win' : 'lose', score });
+
+      const score =
+        data.progress_check_status ?? 0;
+
+      setResult({
+        status:
+          score >= 70
+            ? 'win'
+            : 'lose',
+
+        score,
+      });
     } catch {
-      setResult({ status: 'lose', score: 0 });
+      setResult({
+        status: 'lose',
+        score: 0,
+      });
     } finally {
       setChecking(false);
     }
   };
 
-  const currentNote = notes.find(n => n.id === currentId);
-
-  if (!open) return null;
-
   return (
     <div style={s.panel}>
-      <div style={s.header}>📓 NOTES</div>
 
-          {/* Saved notes list */}
-          <div style={s.list}>
-            {notes.length === 0 && (
-              <div style={{ padding: 14, color: '#555', fontSize: 11, textAlign: 'center' }}>empty</div>
-            )}
-            {notes.map(n => (
-              <div
-                key={n.id}
-                style={{
-                  ...s.listItem,
-                  background: n.id === currentId ? '#1e1e2a' : undefined,
-                }}
-                onClick={() => selectNote(n)}
-              >
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                  {n.title || '(untitled)'}
-                </span>
-                <span style={{ color: '#555', fontSize: 9, marginLeft: 8 }}>
-                  {new Date(n.timestamp).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ borderBottom: '1px solid #222', padding: '8px 14px', display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, height: 14, background: '#111', borderRadius: 3, overflow: 'hidden', border: '1px solid #222', position: 'relative' }}>
-              <div style={{ height: '100%', width: `${result ? result.score : 0}%`, background: result?.status === 'win' ? '#363' : '#444466', borderRadius: 2, transition: 'width 0.4s ease' }} />
-              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>
-                {result ? `${result.score}%` : '— %'}
-              </span>
-            </div>
-          </div>
-
-          {/* Title */}
+      {/* NOTEBOOK INPUT AREA */}
+      <div style={s.notesArea}>
+        {lines.map((line, index) => (
           <input
-            style={s.titleInput}
-            placeholder="note title..."
-            value={title}
-            onChange={e => { setTitle(e.target.value); setResult(null); }}
-          />
+            key={index}
 
-          {/* Body */}
-          <textarea
-            style={s.textarea}
-            placeholder="write a note..."
-            value={body}
-            onChange={e => { setBody(e.target.value); setResult(null); }}
-          />
+            ref={(element) => {
+              inputRefs.current[index] =
+                element;
+            }}
 
-          {/* Actions */}
-          <div style={s.bar}>
-            <button style={s.btn} onClick={newNote}>+ NEW</button>
-            <button style={currentNote ? s.btn : s.btnDisabled} onClick={deleteNote} disabled={!currentNote}>DEL</button>
-            <button
-              style={checking || !body.trim() ? s.btnDisabled : s.btn}
-              onClick={handleCheckStory}
-              disabled={checking || !body.trim()}
-            >
-              {checking ? '◇' : '◈'} CHECK
-            </button>
-          </div>
+            value={line}
+
+            placeholder={
+              index === 0
+                ? 'Write what you think happened here...'
+                : ''
+            }
+
+            maxLength={MAX_CHARS}
+
+            onChange={(event) => {
+              const value =
+                event.target.value;
+
+              updateLine(index, value);
+
+              // Automatically move to the next
+              // notebook line when this one is full
+              if (
+                value.length >= MAX_CHARS &&
+                index < MAX_LINES - 1
+              ) {
+                setTimeout(() => {
+                  focusLine(index + 1);
+                }, 0);
+              }
+            }}
+
+            onKeyDown={(event) =>
+              handleKeyDown(
+                event,
+                index
+              )
+            }
+
+            style={{
+              ...s.input,
+
+              top:
+                LINE_POSITIONS[index],
+            }}
+          />
+        ))}
       </div>
+
+      {/* CHECK BUTTON */}
+      <div style={s.bar}>
+        <button
+          style={checking || !body.trim() ? s.btnDisabled : s.btn}
+          onClick={handleCheckStory}
+          disabled={checking || !body.trim()}
+        >
+          <img
+            src={checkBtnBg}
+            alt=""
+            style={{
+              width: 24,
+              height: 24,
+              objectFit: 'contain',
+              imageRendering: 'pixelated',
+            }}
+          />
+
+          <span>
+            {checking ? 'CHECKING' : 'CHECK'}
+          </span>
+        </button>
+      </div>
+
+      {/* PROGRESS BAR */}
+      <div style={s.progressWrapper}>
+        <div style={s.progressBar}>
+
+          <div
+            style={{
+              height: '100%',
+
+              width: `${
+                result
+                  ? result.score
+                  : 0
+              }%`,
+
+              background:
+                result?.status === 'win'
+                  ? '#363'
+                  : '#444466',
+
+              borderRadius: 2,
+
+              transition:
+                'width 0.4s ease',
+
+              imageRendering:
+                'pixelated',
+            }}
+          />
+
+          <span
+            style={{
+              position: 'absolute',
+
+              inset: 0,
+
+              display: 'flex',
+
+              alignItems: 'center',
+
+              justifyContent:
+                'center',
+
+              fontSize: 9,
+
+              fontWeight: 700,
+            }}
+          >
+            {result
+              ? `${result.score}%`
+              : '— %'}
+          </span>
+
+        </div>
+      </div>
+
+    </div>
   );
 }
