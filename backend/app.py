@@ -11,7 +11,10 @@ app = FastAPI()
 # Allow the deployed frontend (Vercel) and local dev server to call this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://ask-the-right-questions.vercel.app",
+        "http://localhost:5173",  # Vite dev server
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
