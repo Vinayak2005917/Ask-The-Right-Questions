@@ -11,7 +11,6 @@ import uuid
 import os
 from collections import deque
 load_dotenv()
-from langchain.tools import tool
 if not os.getenv("OPENAI_API_KEY"):
     os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 debug_print("All Imports done")
@@ -270,14 +269,15 @@ def add_connections():
     debug_print("Connections updated.")
 
 #retrival function/tool for k=3
-@tool("Retrive_top_k", description="Retrieve the top-k most relevant memories.")
 def Retrive_top_k(query: str, k: int = 5):
+    debug_print(f"Retrieving top {k} memories for query: {query}")
     results = client.query_points(
         collection_name="story",
         query=embedding_function(query),
         limit=k,
         with_payload=True,
     )
+    debug_print(f"Retrieved {len(results.points)} memories for query: {query}")
     return [point.payload for point in results.points]
 
 def delete_DB_world():
