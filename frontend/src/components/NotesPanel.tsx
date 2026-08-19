@@ -8,6 +8,17 @@ const STORAGE_KEY = 'atrq_notes_v2';
 const MAX_LINES = 25;
 const MAX_CHARS = 36;
 
+// The notebook is one fixed coordinate system: the background image
+// (Notes_panel.png, 768×1503) is stretched onto a 420×800 design space,
+// and every input is positioned as a fraction of those dimensions so the
+// whole panel scales as a single unit.
+const DESIGN_WIDTH = 420;
+const DESIGN_HEIGHT = 800;
+const LINE_LEFT = 55;
+const LINE_WIDTH = 330;
+const FIRST_LINE = 104;
+const LINE_GAP = 23;
+
 interface CheckResult {
   status: 'win' | 'lose' | null;
   score: number;
@@ -34,10 +45,13 @@ const s: Record<string, React.CSSProperties> = {
     position: 'absolute',
     top: 0,
     right: 0,
-    height: '100%',
-    width: 420,
+    height: '100vh',
+    aspectRatio: '420 / 800',
+    maxWidth: '100vw',
 
     backgroundImage: `url(${noteBg})`,
+    // '100% 100%' keeps background + inputs in the same box, so even if
+    // maxWidth caps the panel the proportions stay locked together.
     backgroundSize: '100% 100%',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
@@ -51,24 +65,22 @@ const s: Record<string, React.CSSProperties> = {
     boxShadow: '-4px 0 20px rgba(0,0,0,0.6)',
   },
 
+  // Pure spacer so the check button + progress bar stay pinned to the
+  // bottom of the notebook. Inputs are positioned against the panel
+  // (the shared coordinate system) and clipped to this area.
   notesArea: {
     flex: 1,
-    position: 'relative',
     overflow: 'hidden',
   },
 
   input: {
     position: 'absolute',
 
-    left: 55,
-    width: 330,
-
     background: 'transparent',
     border: 'none',
     outline: 'none',
 
     color: '#556967',
-    fontSize: 16,
     fontFamily: 'monospace',
 
     boxSizing: 'border-box',
@@ -85,7 +97,7 @@ const s: Record<string, React.CSSProperties> = {
 
   progressBar: {
     flex: 1,
-    height: 14,
+    height: 22,
 
     background: '#111',
     borderRadius: 3,
@@ -160,41 +172,13 @@ const s: Record<string, React.CSSProperties> = {
     position: 'relative',
     zIndex: 101,
 
-    opacity: 0.55,
+    //darken the button
+    filter: 'brightness(0.8)',
+
   }
 };
 
 export function NotesPanel() {
-  // Exact vertical positions of every notebook line.
-  // You can manually tweak individual values if needed.
-  const LINE_POSITIONS = [
-    104,
-    127,
-    150,
-    173,
-    196,
-    219,
-    242,
-    264,
-    287,
-    310,
-    333,
-    356,
-    379,
-    402,
-    425,
-    448,
-    471,
-    494,
-    517,
-    540,
-    563,
-    586,
-    609,
-    632,
-    655,
-  ];
-
   const [lines, setLines] = useState<string[]>(() => {
     const saved = loadNote();
 
@@ -433,8 +417,12 @@ export function NotesPanel() {
             style={{
               ...s.input,
 
-              top:
-                LINE_POSITIONS[index],
+              // Position each line as a fraction of the notebook's
+              // 420×800 design space so everything scales together.
+              top: `${((FIRST_LINE + index * LINE_GAP) / DESIGN_HEIGHT) * 100}%`,
+              left: `${(LINE_LEFT / DESIGN_WIDTH) * 100}%`,
+              width: `${(LINE_WIDTH / DESIGN_WIDTH) * 100}%`,
+              fontSize: 'clamp(10px, 1.3vw, 16px)',
             }}
           />
         ))}
@@ -451,8 +439,8 @@ export function NotesPanel() {
             src={checkBtnBg}
             alt=""
             style={{
-              width: 24,
-              height: 24,
+              width: 30,
+              height: 30,
               objectFit: 'contain',
               imageRendering: 'pixelated',
             }}

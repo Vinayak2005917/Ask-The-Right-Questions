@@ -18,16 +18,25 @@ def check_story(contents: str, progress_check_id: int) -> dict:
 
     prompt = f"""You are evaluating a player's reconstructed story against the true story.
 
-True story:
-{true_story}
+        True story:
+        {true_story}
 
-Player's notes:
-{contents}
+        Player's notes:
+        {contents}
 
-Score the player's reconstruction from 0 to 100 based on how well it matches the true story events, characters, and key details. A score of 70 or higher means victory — the player has essentially solved the mystery.
+        The player has investigated clues and written their own
+        reconstruction of the story. You must compare the player's story against the official
+        canonical story and determine how closely they match.
 
-Respond ONLY with a JSON object: {{"progress_check_status": <int>}}
-"""
+        Scoring guidelines:
+        - 90-100: Perfect or near-perfect. All major plot points, characters, and events correct.
+        - 70-89: Very good. Most major elements correct, some minor details wrong or missing.
+        - 50-69: Decent. Some major plot points correct, but significant gaps or errors.
+        - 25-49: Poor. Only a few elements match the canonical story.
+        - 0-24: Essentially wrong or completely unrelated.
+
+        Respond ONLY with a JSON object: {{"progress_check_status": <int>}}
+    """
 
     response = client.chat.completions.create(
         model="openai/gpt-5-nano",
